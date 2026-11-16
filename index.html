@@ -51,6 +51,18 @@ button:active{transform:scale(.97)}
 .note{color:var(--muted);font-size:11px;line-height:1.5;margin:17px 3px 0;text-align:center}
 footer{text-align:center;color:#71819f;font-size:11px;margin-top:20px}
 @media(min-width:600px){main{padding-top:34px}.layout{display:grid;grid-template-columns:1.15fr .85fr;gap:15px;align-items:start}.timer-card{margin-top:0}.side .grid{margin-top:0}}
+
+.youtube-card{margin-top:15px}
+.yt-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.yt-status{font-size:11px;color:var(--mint);background:#1c3b3a;border:1px solid #315d59;border-radius:99px;padding:6px 9px}
+.yt-form{display:flex;gap:8px;margin-top:12px}
+.yt-form input{min-width:0;flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--text);font:inherit}
+.yt-links{display:grid;gap:8px;margin-top:12px}
+.yt-link{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#1b2945;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12px}
+.yt-link a{color:var(--blue);text-decoration:none;font-weight:700}
+.yt-link button{padding:6px 9px;font-size:11px}
+.yt-empty{font-size:12px;color:var(--muted);margin:12px 0 0}
+
 </style>
 </head>
 <body>
@@ -80,6 +92,24 @@ footer{text-align:center;color:#71819f;font-size:11px;margin-top:20px}
   </div>
 </section>
 <section class="side">
+
+  <div class="card youtube-card">
+    <div class="yt-head">
+      <div>
+        <div class="label">YouTube study mode</div>
+        <div style="font-size:13px;margin-top:6px">Study Only · default</div>
+      </div>
+      <span id="ytStatus" class="yt-status">Ready for lectures</span>
+    </div>
+    <p class="note" style="text-align:left;margin:10px 0 0">Save trusted CLAT lecture links here. During a focus session, use only these saved links instead of browsing YouTube.</p>
+    <div class="yt-form">
+      <input id="ytUrl" type="url" placeholder="Paste a YouTube lecture link" aria-label="YouTube lecture URL">
+      <button id="ytAdd" class="secondary">Add</button>
+    </div>
+    <div id="ytLinks" class="yt-links"></div>
+    <p class="note" style="text-align:left;margin:10px 0 0">For stronger blocking, enable Samsung Settings → Digital Wellbeing → Focus mode and pause the YouTube app during study. This web app cannot itself block other Android apps or verify whether a video is educational.</p>
+  </div>
+
   <div class="grid">
     <div class="stat"><div class="label">Today studied</div><strong id="todayTime">0m</strong><small>Focus time only</small></div>
     <div class="stat"><div class="label">Sessions done</div><strong id="todaySessions">0</strong><small>Completed focus sessions</small></div>
@@ -129,6 +159,7 @@ footer{text-align:center;color:#71819f;font-size:11px;margin-top:20px}
    const names=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];let out='';
    for(let i=6;i>=0;i--){let d=new Date();d.setDate(d.getDate()-i);let k=dateKey(d),v=data.days[k]?.minutes||0;out+=`<div class="day">${names[d.getDay()]}<b class="${v>0?'active':''}">${v}</b></div>`;}
    $('weekDays').innerHTML=out;
+   renderYouTube();
  }
  function stopTick(){if(tick){clearInterval(tick);tick=null;}}
  function finish(){
@@ -164,6 +195,41 @@ footer{text-align:center;color:#71819f;font-size:11px;margin-top:20px}
  });
  if(data.running&&data.deadline){data.remaining=Math.max(0,Math.ceil((data.deadline-Date.now())/1000));if(data.remaining===0)finish();else runTick();}
  render();
+
+ const YTKEY='clat-focus-youtube-links-v1';
+ let ytLinks=[];
+ try{ytLinks=JSON.parse(localStorage.getItem(YTKEY)||'[]');if(!Array.isArray(ytLinks))ytLinks=[];}catch(e){ytLinks=[];}
+ function validYouTubeUrl(raw){
+   try{
+     const u=new URL(raw);
+     return (u.hostname==='youtube.com'||u.hostname.endsWith('.youtube.com')||u.hostname==='youtu.be') &&
+       (u.protocol==='https:') && (u.pathname.includes('/watch')||u.pathname.includes('/shorts/')||u.hostname==='youtu.be'||u.pathname.includes('/live/'));
+   }catch(e){return false;}
+ }
+ function renderYouTube(){
+   const root=$('ytLinks'); if(!root)return;
+   $('ytStatus').textContent=data.running&&data.mode==='focus'?'Study session active':'Ready for lectures';
+   root.innerHTML='';
+   if(!ytLinks.length){root.innerHTML='<p class="yt-empty">No lecture links saved yet. Add a trusted CLAT lecture link above.</p>';return;}
+   ytLinks.forEach((url,i)=>{
+     const row=document.createElement('div');row.className='yt-link';
+     const link=document.createElement('a');
+     const studyActive=!!(data.running&&data.mode==='focus');
+     if(studyActive){link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Open lecture '+(i+1);}
+     else{link.removeAttribute('href');link.textContent='Locked · start focus to open';link.style.color='var(--muted)';link.style.pointerEvents='none';}
+     const del=document.createElement('button');del.className='ghost';del.textContent='Remove';del.type='button';
+     del.addEventListener('click',()=>{ytLinks.splice(i,1);localStorage.setItem(YTKEY,JSON.stringify(ytLinks));renderYouTube();});
+     row.append(link,del);root.append(row);
+   });
+ }
+ const ytAdd=$('ytAdd');
+ if(ytAdd)ytAdd.addEventListener('click',()=>{
+   const input=$('ytUrl'),url=input.value.trim();
+   if(!validYouTubeUrl(url)){alert('Please paste a valid HTTPS YouTube video or lecture link.');return;}
+   if(!ytLinks.includes(url)){ytLinks.push(url);localStorage.setItem(YTKEY,JSON.stringify(ytLinks));}
+   input.value='';renderYouTube();
+ });
+
  if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
 </script>

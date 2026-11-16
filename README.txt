@@ -22,3 +22,10 @@ DEFAULTS
 - Break: 10 minutes
 - Daily target: 240 minutes
 - Subjects: English, Current Affairs & GK, Legal Reasoning, Logical Reasoning, Quantitative Techniques
+
+
+YOUTUBE STUDY MODE
+- The app now has a YouTube Study Mode panel.
+- Add trusted YouTube lecture URLs and open them from the saved list.
+- This is a study-link launcher, not an Android app blocker.
+- For app-level blocking, configure Samsung Digital Wellbeing Focus mode to pause YouTube during study. Keep Chrome available if you plan to open lecture links in the browser.
